@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catalyst Digitals - Employee Timekeeper</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              400: '#2dd4bf',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              900: '#134e4a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar styling for slick UI */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #0d9488;
+    }
+  </style>
+</head>
+<body class="h-full font-sans antialiased bg-slate-950 text-slate-100 flex flex-col min-h-screen">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo & Company Name -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-cyan-400 flex items-center justify-center text-slate-950 font-bold text-xl shadow-lg shadow-teal-500/20">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+            CATALYST <span class="text-teal-400">DIGITALS</span>
+          </span>
+          <span class="text-xs text-slate-400 block -mt-1 font-medium">Virtual Service Timekeeper</span>
+        </div>
+      </div>
+
+      <!-- Live Clock & View Selector -->
+      <div class="flex items-center space-x-4">
+        <div class="hidden md:flex flex-col text-right border-r border-slate-800 pr-4">
+          <span id="live-time" class="text-sm font-semibold text-teal-400 tracking-wider">00:00:00 AM</span>
+          <span id="live-date" class="text-xs text-slate-400">Loading date...</span>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <button id="btn-view-kiosk" onclick="switchView('kiosk')" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 bg-teal-500 text-slate-950 shadow">
+            <i class="fa-solid fa-clock"></i>
+            <span>Clock Kiosk</span>
+          </button>
+          <button id="btn-view-admin" onclick="switchView('admin')" class="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-400 hover:text-white transition-all duration-200 flex items-center gap-2">
+            <i class="fa-solid fa-user-shield"></i>
+            <span>Admin Portal</span>
+            <span id="admin-badge" class="hidden w-2 h-2 rounded-full bg-teal-400 inline-block"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Dynamic Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- VIEW 1: EMPLOYEE KIOSK VIEW -->
+    <div id="view-kiosk" class="space-y-6">
+      
+      <!-- Employee Selector Card -->
+        <!-- Search & Filter Controls for Employee Selection -->
+        <div class="max-w-xl mx-auto space-y-4 text-center">
+          <h2 class="text-2xl font-bold text-white tracking-tight">Select Employee Account</h2>
+          <p class="text-slate-400 text-sm">Search and choose your name below to access your clock in/out panel.</p>
+          
+          <div class="relative mt-4">
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+              <input type="text" id="kiosk-search-input" placeholder="Search employee name or ID..." oninput="filterEmployeeDropdown()" onfocus="showEmployeeDropdownList()" class="w-full pl-11 pr-10 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-medium focus:ring-2 focus:ring-teal-500 outline-none transition-all">
+              <i class="fa-solid fa-chevron-down text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            </div>
+            
+            <!-- Custom Dynamic Dropdown for Unlimited Employees -->
+            <div id="kiosk-employee-results" class="hidden absolute left-0 right-0 top-full mt-2 bg-slate-900 border border-slate-700 rounded-xl max-h-60 overflow-y-auto z-50 shadow-2xl text-left divide-y divide-slate-800">
+              <!-- Dynamically populated options -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clock Action Kiosk Box (Shown when employee is selected) -->
+      <div id="kiosk-action-panel" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Main Clocking Card -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-xl relative">
+          
+          <div class="flex items-center justify-between pb-6 border-b border-slate-800">
+            <div>
+              <span class="text-xs uppercase tracking-wider font-semibold text-teal-400">Current Session</span>
+              <h3 id="emp-display-name" class="text-2xl font-bold text-white mt-0.5">Employee Name</h3>
+              <p id="emp-display-role" class="text-sm text-slate-400">Role Title</p>
+            </div>
+            <div id="clock-status-pill" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+              <span>Clocked Out</span>
+            </div>
+          </div>
+
+          <!-- Digital Clock Display & Buttons -->
+          <div class="my-8 text-center space-y-6">
+            <div>
+              <div id="kiosk-digital-clock" class="text-4xl sm:text-6xl font-extrabold text-white tracking-wider font-mono">
+                00:00:00 AM
+            <!-- SUB-TAB 2: EMPLOYEES ROSTER TABLE -->
+            <div id="subtab-employees" class="hidden mt-4 space-y-4">
+              <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div class="relative w-full sm:w-72">
+                  <i class="fa-solid fa-search text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 text-xs"></i>
+                  <input type="text" id="admin-emp-search" oninput="renderAdminEmployeesTable()" placeholder="Search employees..." class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 text-xs rounded-xl text-slate-200 outline-none focus:border-teal-500">
+                </div>
+                <div class="text-xs text-slate-400">
+                  Total Roster: <span id="admin-total-roster-count" class="font-bold text-teal-400">0</span> Employees
+                </div>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-300">
+                  <thead class="text-xs uppercase bg-slate-950/80 text-slate-400 font-semibold">
+                    <tr>
+                      <th class="py-3 px-4 rounded-l-lg">ID</th>
+                      <th class="py-3 px-4">Full Name</th>
+                      <th class="py-3 px-4">Role / Department</th>
+                      <th class="py-3 px-4">Assigned Shift</th>
+                      <th class="py-3 px-4 text-right rounded-r-lg">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-employees-tbody" class="divide-y divide-slate-800/60 font-medium">
+                    <!-- Dynamically populated -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div id="emp-todays-metrics" class="text-right">
+              <span class="text-slate-400 block">Today's Status:</span>
+              <span id="emp-status-summary" class="font-semibold text-teal-400">Ready to clock in</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Logs History Panel -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <h4 class="font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-history text-teal-400"></i>
+              Recent Attendance
+            </h4>
+            <span class="text-xs text-slate-400">Last 7 Records</span>
+          </div>
+
+          <div id="employee-recent-logs" class="flex-1 overflow-y-auto max-h-[380px] my-4 space-y-3 pr-1">
+            <!-- Dynamic Content populated via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: ADMIN PORTAL VIEW -->
+    <div id="view-admin" class="hidden space-y-6">
+      
+      <!-- Admin Login Box (if not authenticated) -->
+      <div id="admin-login-box" class="max-w-md mx-auto my-12 bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative">
+        <div class="text-center space-y-2 mb-6">
+          <div class="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center mx-auto text-xl">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+          <h3 class="text-xl font-bold text-white">Admin Authentication</h3>
+          <p class="text-xs text-slate-400">Enter administrator credentials to manage records and employees.</p>
+        </div>
+
+        <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Email</label>
+            <input type="email" id="admin-email" value="admin@catalystdigitals.com" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-teal-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Password</label>
+            <input type="password" id="admin-password" value="admin123" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-teal-500 outline-none">
+          </div>
+          <p class="text-xs text-slate-500 italic">Default credentials: admin@catalystdigitals.com / admin123</p>
+          <button type="submit" class="w-full py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-teal-500/20 transition-all">
+            Login to Admin Panel
+          </button>
+        </form>
+      </div>
+
+      <!-- Main Admin Dashboard (Shown after Login) -->
+      <div id="admin-dashboard" class="hidden space-y-6">
+        
+        <!-- Admin Bar & Actions -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-teal-500/10 text-teal-400 rounded-lg">
+              <i class="fa-solid fa-user-gear text-lg"></i>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-white">Administrator Control Dashboard</h2>
+              <p class="text-xs text-slate-400">Manage employee rosters, time schedules, manual entries, and payroll exports.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <button onclick="exportToCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all">
+              <i class="fa-solid fa-file-csv"></i>
+              <span>Export Salary CSV</span>
+            </button>
+            <button onclick="handleAdminLogout()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-semibold transition-all">
+              <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metrics Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+            <div class="flex justify-between items-center text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Total Roster</span>
+              <i class="fa-solid fa-users text-teal-400"></i>
+            </div>
+            <div id="stat-total-emp" class="text-3xl font-extrabold text-white">0</div>
+            <span class="text-xs text-slate-500 mt-1 block">Active Employees</span>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+            <div class="flex justify-between items-center text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Clocked In Now</span>
+              <i class="fa-solid fa-user-check text-emerald-400"></i>
+            </div>
+            <div id="stat-clocked-in" class="text-3xl font-extrabold text-emerald-400">0</div>
+            <span class="text-xs text-slate-500 mt-1 block">Active On-Shift</span>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+            <div class="flex justify-between items-center text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Lates Today</span>
+              <i class="fa-solid fa-user-clock text-amber-400"></i>
+            </div>
+            <div id="stat-total-late" class="text-3xl font-extrabold text-amber-400">0 min</div>
+            <span class="text-xs text-slate-500 mt-1 block">Cumulative Late Duration</span>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+            <div class="flex justify-between items-center text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Overtime Today</span>
+              <i class="fa-solid fa-business-time text-cyan-400"></i>
+            </div>
+            <div id="stat-total-ot" class="text-3xl font-extrabold text-cyan-400">0 hrs</div>
+            <span class="text-xs text-slate-500 mt-1 block">Approved Extended Hours</span>
+          </div>
+        </div>
+
+        <!-- Section Tabs: Attendance Logs vs Employee Roster -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-800 gap-4">
+            
+            <div class="flex space-x-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button id="admin-tab-logs" onclick="switchAdminSubTab('logs')" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-teal-500 text-slate-950">
+                Attendance Records & Logs
+              </button>
+              <button id="admin-tab-employees" onclick="switchAdminSubTab('employees')" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 hover:text-white">
+                Employee & Schedule Management
+              </button>
+            </div>
+
+            <!-- Log Quick Actions (Only in logs tab) -->
+            <div id="log-tab-actions" class="flex flex-wrap items-center gap-2">
+              <button onclick="openManualLogModal()" class="px-3 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/30 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span>Assign Verified Entry</span>
+              </button>
+              <input type="date" id="filter-date" onchange="renderAdminLogsTable()" class="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 outline-none">
+            </div>
+
+            <!-- Employee Quick Actions (Only in employees tab) -->
+            <div id="employee-tab-actions" class="hidden">
+              <button onclick="openEmployeeModal()" class="px-3 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Add New Employee</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- SUB-TAB 1: ATTENDANCE LOGS TABLE -->
+          <div id="subtab-logs" class="mt-4 overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="text-xs uppercase bg-slate-950/80 text-slate-400 font-semibold">
+                <tr>
+                  <th class="py-3 px-4 rounded-l-lg">Employee</th>
+                  <th class="py-3 px-4">Date</th>
+                  <th class="py-3 px-4">Expected Shift</th>
+                  <th class="py-3 px-4">Time In</th>
+                  <th class="py-3 px-4">Time Out</th>
+                  <th class="py-3 px-4">Late</th>
+                  <th class="py-3 px-4">Overtime</th>
+                  <th class="py-3 px-4">Total Hrs</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4 text-right rounded-r-lg">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-logs-tbody" class="divide-y divide-slate-800/60 font-medium">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- SUB-TAB 2: EMPLOYEES ROSTER TABLE -->
+          <div id="subtab-employees" class="hidden mt-4 overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="text-xs uppercase bg-slate-950/80 text-slate-400 font-semibold">
+                <tr>
+                  <th class="py-3 px-4 rounded-l-lg">ID</th>
+                  <th class="py-3 px-4">Full Name</th>
+                  <th class="py-3 px-4">Role / Department</th>
+                  <th class="py-3 px-4">Assigned Shift</th>
+                  <th class="py-3 px-4 text-right rounded-r-lg">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-employees-tbody" class="divide-y divide-slate-800/60 font-medium">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL 1: ADD/EDIT EMPLOYEE MODAL -->
+  <div id="modal-employee" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 id="modal-emp-title" class="text-lg font-bold text-white">Add New Employee</h3>
+        <button onclick="closeModal('modal-employee')" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="form-employee" onsubmit="saveEmployee(event)" class="space-y-4">
+        <input type="hidden" id="emp-form-id">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
+          <input type="text" id="emp-form-name" required placeholder="e.g. Alex Rivera" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-2 focus:ring-teal-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Role / Department</label>
+          <input type="text" id="emp-form-role" required placeholder="e.g. Virtual Assistant / Social Media" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-2 focus:ring-teal-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Expected Time In</label>
+            <input type="time" id="emp-form-start" required value="08:00" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-2 focus:ring-teal-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Expected Time Out</label>
+            <input type="time" id="emp-form-end" required value="17:00" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-2 focus:ring-teal-500">
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-4 border-t border-slate-800">
+          <button type="button" onclick="closeModal('modal-employee')" class="px-4 py-2 bg-slate-800 text-slate-300 font-semibold rounded-xl text-sm hover:bg-slate-700">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-xl text-sm shadow-lg shadow-teal-500/20">Save Employee</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: MANUAL ATTENDANCE OVERRIDE MODAL -->
+  <div id="modal-log-override" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 id="modal-log-title" class="text-lg font-bold text-white">Assign Verified Time Record</h3>
+        <button onclick="closeModal('modal-log-override')" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="form-log-override" onsubmit="saveManualLog(event)" class="space-y-4">
+        <input type="hidden" id="log-form-id">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Employee</label>
+          <select id="log-form-employee" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-2 focus:ring-teal-500">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Date</label>
+          <input type="date" id="log-form-date" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-2 focus:ring-teal-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Actual Time In</label>
+            <input type="time" id="log-form-timein" required class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-2 focus:ring-teal-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Actual Time Out</label>
+            <input type="time" id="log-form-timeout" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none focus:ring-2 focus:ring-teal-500">
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-500 italic">* Late & Overtime metrics will be automatically re-calculated based on assigned employee shift schedules.</p>
+
+        <div class="flex justify-end space-x-3 pt-4 border-t border-slate-800">
+          <button type="button" onclick="closeModal('modal-log-override')" class="px-4 py-2 bg-slate-800 text-slate-300 font-semibold rounded-xl text-sm hover:bg-slate-700">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-xl text-sm shadow-lg shadow-teal-500/20">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Paste your exact config keys from Firebase Console
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "catalyst-digitals.firebaseapp.com",
+      projectId: "catalyst-digitals",
+      storageBucket: "catalyst-digitals.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:abc123def456"
+    };
+
+    // Initialize Firebase & Firestore
+    let db = null;
+    let isFirebaseActive = false;
+
+    try {
+      if (firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.projectId !== "catalyst-digitals") {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        isFirebaseActive = true;
+      }
+    } catch (e) {
+      console.warn("Firebase initialization failed or using default placeholders. Falling back to local mode.", e);
+    }
+
+    // Storage Keys (Fallback)
+    const STORAGE_EMP = 'catalyst_employees_v1';
+    const STORAGE_LOGS = 'catalyst_logs_v1';
+    const STORAGE_ADMIN_AUTH = 'catalyst_admin_session';
+
+    // Application State Variables
+    let employees = [];
+    let logs = [];
+    let currentEmployeeId = null;
+    let isAdminLoggedIn = false;
+    let activeView = 'kiosk'; // 'kiosk' or 'admin'
+    let unsubscribeEmployees = null;
+    let unsubscribeLogs = null;
+
+    // Initial Pre-populated Seed Data
+    const defaultEmployees = [
+      { id: 'EMP-101', name: 'Sophia Martinez', role: 'Lead Virtual Assistant', expectedStart: '08:00', expectedEnd: '17:00' },
+      { id: 'EMP-102', name: 'Marcus Chen', role: 'Full Stack Web Developer', expectedStart: '09:00', expectedEnd: '18:00' },
+      { id: 'EMP-103', name: 'Elena Rostova', role: 'Digital Marketing Strategist', expectedStart: '08:00', expectedEnd: '17:00' },
+      { id: 'EMP-104', name: 'David Vance', role: 'UI/UX & Graphics Designer', expectedStart: '10:00', expectedEnd: '19:00' }
+    ];
+
+    // Get today's YYYY-MM-DD
+    function getTodayString() {
+      const now = new Date();
+      return now.toISOString().split('T')[0];
+    }
+
+    const todayDate = getTodayString();
+
+    const defaultLogs = [
+      {
+        id: 'LOG-1',
+        employeeId: 'EMP-101',
+        date: todayDate,
+        timeIn: '08:14', // 14 mins late
+        timeOut: '17:30', // 30 mins OT
+        status: 'Completed'
+      },
+      {
+        id: 'LOG-2',
+        employeeId: 'EMP-102',
+        date: todayDate,
+        timeIn: '08:58', // On time (Expected 09:00)
+        timeOut: null,   // Currently clocked in
+        status: 'Clocked In'
+      },
+      {
+        id: 'LOG-3',
+        employeeId: 'EMP-103',
+        date: todayDate,
+        timeIn: '08:00', // On time
+        timeOut: '18:15', // 1h 15m OT
+        status: 'Completed'
+      }
+    ];
+
+    window.onload = function() {
+      initData();
+      startLiveClocks();
+      checkAdminSession();
+    };
+
+    function initData() {
+      if (isFirebaseActive && db) {
+        // Attach Realtime Firestore Listeners
+        showToast('Connecting to Firebase Firestore...', 'info');
+
+        unsubscribeEmployees = db.collection('employees').onSnapshot(snapshot => {
+          employees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Seed database if empty on first connection
+          if (employees.length === 0) {
+            defaultEmployees.forEach(emp => {
+              const { id, ...data } = emp;
+              db.collection('employees').doc(id).set(data);
+            });
+          }
+          
+          refreshUI();
+        }, err => {
+          console.error("Firestore employees listener error:", err);
+          showToast("Firestore Employees Error. Check permissions or config.", "error");
+        });
+
+        unsubscribeLogs = db.collection('logs').onSnapshot(snapshot => {
+          logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Seed database if empty on first connection
+          if (logs.length === 0) {
+            defaultLogs.forEach(log => {
+              const { id, ...data } = log;
+              db.collection('logs').doc(id).set(data);
+            });
+          }
+          
+          refreshUI();
+        }, err => {
+          console.error("Firestore logs listener error:", err);
+          showToast("Firestore Logs Error. Check permissions or config.", "error");
+        });
+
+      } else {
+        // LocalStorage Fallback Mode
+        const savedEmps = localStorage.getItem(STORAGE_EMP);
+        if (savedEmps) {
+          employees = JSON.parse(savedEmps);
+        } else {
+          employees = defaultEmployees;
+          saveEmployees();
+        }
+
+        const savedLogs = localStorage.getItem(STORAGE_LOGS);
+        if (savedLogs) {
+          logs = JSON.parse(savedLogs);
+        } else {
+          logs = defaultLogs;
+          saveLogs();
+        }
+
+        refreshUI();
+      }
+    }
+
+    function refreshUI() {
+      populateEmployeeDropdown(document.getElementById('kiosk-search-input')?.value || '');
+      renderAdminEmployeesTable();
+      renderAdminLogsTable();
+      updateAdminDashboardStats();
+
+      if (currentEmployeeId) {
+        updateKioskClockState();
+        renderEmployeeRecentLogs(currentEmployeeId);
+      }
+    }
+
+    async function saveEmployees() {
+      if (!isFirebaseActive) {
+        localStorage.setItem(STORAGE_EMP, JSON.stringify(employees));
+      }
+    }
+
+    async function saveLogs() {
+      if (!isFirebaseActive) {
+        localStorage.setItem(STORAGE_LOGS, JSON.stringify(logs));
+      }
+    }
+
+    function startLiveClocks() {
+      function update() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+        const liveTimeEl = document.getElementById('live-time');
+        const liveDateEl = document.getElementById('live-date');
+        const kioskClockEl = document.getElementById('kiosk-digital-clock');
+        const kioskDateEl = document.getElementById('kiosk-digital-date');
+
+        if (liveTimeEl) liveTimeEl.innerText = timeStr;
+        if (liveDateEl) liveDateEl.innerText = dateStr;
+        if (kioskClockEl) kioskClockEl.innerText = timeStr;
+        if (kioskDateEl) kioskDateEl.innerText = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+      }
+      update();
+      setInterval(update, 1000);
+    }
+
+    function switchView(view) {
+      activeView = view;
+      const kioskView = document.getElementById('view-kiosk');
+      const adminView = document.getElementById('view-admin');
+      const btnKiosk = document.getElementById('btn-view-kiosk');
+      const btnAdmin = document.getElementById('btn-view-admin');
+
+      if (view === 'kiosk') {
+        kioskView.classList.remove('hidden');
+        adminView.classList.add('hidden');
+        btnKiosk.className = "px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 bg-teal-500 text-slate-950 shadow";
+        btnAdmin.className = "px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-400 hover:text-white transition-all duration-200 flex items-center gap-2";
+      } else {
+        kioskView.classList.add('hidden');
+        adminView.classList.remove('hidden');
+        btnAdmin.className = "px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 bg-teal-500 text-slate-950 shadow";
+        btnKiosk.className = "px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-400 hover:text-white transition-all duration-200 flex items-center gap-2";
+      }
+    }
+
+    function checkAdminSession() {
+      const isAuth = localStorage.getItem(STORAGE_ADMIN_AUTH);
+      if (isAuth === 'true') {
+        isAdminLoggedIn = true;
+        document.getElementById('admin-login-box').classList.add('hidden');
+        document.getElementById('admin-dashboard').classList.remove('hidden');
+        document.getElementById('admin-badge').classList.remove('hidden');
+      } else {
+        isAdminLoggedIn = false;
+        document.getElementById('admin-login-box').classList.remove('hidden');
+        document.getElementById('admin-dashboard').classList.add('hidden');
+        document.getElementById('admin-badge').classList.add('hidden');
+      }
+    }
+
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('admin-email').value;
+      const pass = document.getElementById('admin-password').value;
+
+      if (email === 'admin@catalystdigitals.com' && pass === 'admin123') {
+        localStorage.setItem(STORAGE_ADMIN_AUTH, 'true');
+        checkAdminSession();
+        showToast('Admin Authenticated successfully', 'success');
+      } else {
+        showToast('Invalid credentials. Please use admin@catalystdigitals.com / admin123', 'error');
+      }
+    }
+
+    function handleAdminLogout() {
+      localStorage.removeItem(STORAGE_ADMIN_AUTH);
+      checkAdminSession();
+      showToast('Logged out of Admin Portal', 'info');
+    }
+
+    function populateEmployeeDropdown(searchTerm = '') {
+      const select = document.getElementById('employee-select');
+      const countEl = document.getElementById('kiosk-emp-count');
+      select.innerHTML = '<option value="">-- Choose Employee --</option>';
+      
+      const filtered = employees.filter(emp => 
+        emp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.id.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+      filtered.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp.id;
+        opt.textContent = `${emp.name} (${emp.role})`;
+        if (emp.id === currentEmployeeId) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      if (countEl) {
+        countEl.innerText = `${employees.length} total employees in roster ${searchTerm ? `(${filtered.length} matching search)` : ''}`;
+      }
+    }
+
+    function filterKioskDropdown() {
+      const searchVal = document.getElementById('kiosk-search-input').value;
+      populateEmployeeDropdown(searchVal);
+    }
+
+    function onEmployeeSelect() {
+      const empId = document.getElementById('employee-select').value;
+      const actionPanel = document.getElementById('kiosk-action-panel');
+
+      if (!empId) {
+        currentEmployeeId = null;
+        actionPanel.classList.add('hidden');
+        return;
+      }
+
+      currentEmployeeId = empId;
+      const emp = employees.find(e => e.id === empId);
+      if (!emp) return;
+
+      // Populate Employee Display Header
+      document.getElementById('emp-display-name').innerText = emp.name;
+      document.getElementById('emp-display-role').innerText = emp.role;
+      document.getElementById('emp-expected-schedule').innerText = `${formatTime12Hour(emp.expectedStart)} - ${formatTime12Hour(emp.expectedEnd)}`;
+
+      actionPanel.classList.remove('hidden');
+      updateKioskClockState();
+      renderEmployeeRecentLogs(empId);
+    }
+
+    function updateKioskClockState() {
+      if (!currentEmployeeId) return;
+
+      const btnIn = document.getElementById('btn-clock-in');
+      const btnOut = document.getElementById('btn-clock-out');
+      const statusPill = document.getElementById('clock-status-pill');
+      const statusSummary = document.getElementById('emp-status-summary');
+
+      // Check if employee has active log today
+      const today = getTodayString();
+      const todayLog = logs.find(l => l.employeeId === currentEmployeeId && l.date === today && l.status === 'Clocked In');
+
+      if (todayLog) {
+        // Currently Clocked In
+        btnIn.disabled = true;
+        btnOut.disabled = false;
+
+        statusPill.className = "px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-2";
+        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Clocked In since ${formatTime12Hour(todayLog.timeIn)}`;
+
+        statusSummary.innerText = `Clocked In at ${formatTime12Hour(todayLog.timeIn)}`;
+        statusSummary.className = "font-semibold text-emerald-400";
+      } else {
+        // Currently Clocked Out
+        btnIn.disabled = false;
+        btnOut.disabled = true;
+
+        statusPill.className = "px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-2";
+        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span> Clocked Out`;
+
+        statusSummary.innerText = `Ready for Clock In`;
+        statusSummary.className = "font-semibold text-teal-400";
+      }
+    }
+
+    async function handleClockIn() {
+      if (!currentEmployeeId) return;
+
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const today = getTodayString();
+
+      // Check for unfinished logs today
+      const existingActive = logs.find(l => l.employeeId === currentEmployeeId && l.date === today && l.status === 'Clocked In');
+      if (existingActive) {
+        showToast('You are already clocked in!', 'error');
+        return;
+      }
+
+      const logId = 'LOG-' + Date.now();
+      const newLog = {
+        employeeId: currentEmployeeId,
+        date: today,
+        timeIn: timeStr,
+        timeOut: null,
+        status: 'Clocked In'
+      };
+
+      if (isFirebaseActive && db) {
+        try {
+          await db.collection('logs').doc(logId).set(newLog);
+        } catch (e) {
+          console.error("Firestore Clock In error:", e);
+          showToast('Failed to clock in via Cloud Firestore.', 'error');
+          return;
+        }
+      } else {
+        logs.unshift({ id: logId, ...newLog });
+        saveLogs();
+        refreshUI();
+      }
+
+      const emp = employees.find(e => e.id === currentEmployeeId);
+      showToast(`Welcome! ${emp.name} clocked in at ${formatTime12Hour(timeStr)}`, 'success');
+    }
+
+    async function handleClockOut() {
+      if (!currentEmployeeId) return;
+
+      const today = getTodayString();
+      const activeLog = logs.find(l => l.employeeId === currentEmployeeId && l.date === today && l.status === 'Clocked In');
+
+      if (!activeLog) {
+        showToast('No active clock-in session found for today.', 'error');
+        return;
+      }
+
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      if (isFirebaseActive && db) {
+        try {
+          await db.collection('logs').doc(activeLog.id).update({
+            timeOut: timeStr,
+            status: 'Completed'
+          });
+        } catch (e) {
+          console.error("Firestore Clock Out error:", e);
+          showToast('Failed to clock out via Cloud Firestore.', 'error');
+          return;
+        }
+      } else {
+        const activeLogIndex = logs.findIndex(l => l.id === activeLog.id);
+        if (activeLogIndex !== -1) {
+          logs[activeLogIndex].timeOut = timeStr;
+          logs[activeLogIndex].status = 'Completed';
+          saveLogs();
+          refreshUI();
+        }
+      }
+
+      const emp = employees.find(e => e.id === currentEmployeeId);
+      showToast(`Goodbye! ${emp.name} clocked out at ${formatTime12Hour(timeStr)}`, 'info');
+    }
+
+    function renderEmployeeRecentLogs(empId) {
+      const container = document.getElementById('employee-recent-logs');
+      container.innerHTML = '';
+
+      const emp = employees.find(e => e.id === empId);
+      const empLogs = logs.filter(l => l.employeeId === empId).slice(0, 7);
+
+      if (empLogs.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-500 text-xs">
+            <i class="fa-solid fa-folder-open text-2xl mb-2 block"></i>
+            No attendance records logged yet.
+          </div>
+        `;
+        return;
+      }
+
+      empLogs.forEach(log => {
+        const calc = calculateMetrics(log, emp);
+        
+        const card = document.createElement('div');
+        card.className = "p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between text-xs";
+        
+        card.innerHTML = `
+          <div>
+            <div class="font-semibold text-slate-200">${log.date}</div>
+            <div class="text-slate-400 mt-0.5">
+              ${formatTime12Hour(log.timeIn)} - ${log.timeOut ? formatTime12Hour(log.timeOut) : '<span class="text-emerald-400 font-semibold">Active</span>'}
+            </div>
+          </div>
+          <div class="text-right">
+            ${calc.lateMinutes > 0 ? `<span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-semibold block mb-1">Late: ${calc.lateMinutes}m</span>` : ''}
+            ${calc.overtimeMinutes > 0 ? `<span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-[10px] font-semibold block mb-1">OT: ${formatMinutesToHours(calc.overtimeMinutes)}</span>` : ''}
+            <span class="text-slate-400 block">${calc.totalHours} hrs</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function calculateMetrics(log, employee) {
+      if (!employee) return { lateMinutes: 0, overtimeMinutes: 0, totalHours: '0.00' };
+
+      let lateMinutes = 0;
+      let overtimeMinutes = 0;
+      let totalMinutesWorked = 0;
+
+      // 1. Calculate Late Minutes
+      if (log.timeIn && employee.expectedStart) {
+        const actualStartMins = timeStringToMinutes(log.timeIn);
+        const expectedStartMins = timeStringToMinutes(employee.expectedStart);
+        if (actualStartMins > expectedStartMins) {
+          lateMinutes = actualStartMins - expectedStartMins;
+        }
+      }
+
+      // 2. Calculate Total Worked & Overtime Minutes
+      if (log.timeIn && log.timeOut) {
+        const startMins = timeStringToMinutes(log.timeIn);
+        const endMins = timeStringToMinutes(log.timeOut);
+        
+        if (endMins > startMins) {
+          totalMinutesWorked = endMins - startMins;
+        }
+
+        if (employee.expectedEnd) {
+          const expectedEndMins = timeStringToMinutes(employee.expectedEnd);
+          if (endMins > expectedEndMins) {
+            overtimeMinutes = endMins - expectedEndMins;
+          }
+        }
+      }
+
+      return {
+        lateMinutes,
+        overtimeMinutes,
+        totalHours: (totalMinutesWorked / 60).toFixed(2)
+      };
+    }
+
+    function timeStringToMinutes(timeStr) {
+      if (!timeStr) return 0;
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function formatTime12Hour(timeStr) {
+      if (!timeStr) return '--:--';
+      const [h, m] = timeStr.split(':').map(Number);
+      const period = h >= 12 ? 'PM' : 'AM';
+      const hours12 = h % 12 || 12;
+      return `${String(hours12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
+    }
+
+    function formatMinutesToHours(minutes) {
+      const hrs = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      if (hrs > 0) return `${hrs}h ${mins}m`;
+      return `${mins}m`;
+    }
+
+    function switchAdminSubTab(tab) {
+      const subLogs = document.getElementById('subtab-logs');
+      const subEmp = document.getElementById('subtab-employees');
+      const tabLogsBtn = document.getElementById('admin-tab-logs');
+      const tabEmpBtn = document.getElementById('admin-tab-employees');
+      const logActions = document.getElementById('log-tab-actions');
+      const empActions = document.getElementById('employee-tab-actions');
+
+      if (tab === 'logs') {
+        subLogs.classList.remove('hidden');
+        subEmp.classList.add('hidden');
+        logActions.classList.remove('hidden');
+        empActions.classList.add('hidden');
+        tabLogsBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-teal-500 text-slate-950";
+        tabEmpBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 hover:text-white";
+      } else {
+        subLogs.classList.add('hidden');
+        subEmp.classList.remove('hidden');
+        logActions.classList.add('hidden');
+        empActions.classList.remove('hidden');
+        tabEmpBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-teal-500 text-slate-950";
+        tabLogsBtn.className = "px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 hover:text-white";
+      }
+    }
+
+    function updateAdminDashboardStats() {
+      const today = getTodayString();
+      const todayLogs = logs.filter(l => l.date === today);
+
+      document.getElementById('stat-total-emp').innerText = employees.length;
+
+      const clockedInCount = todayLogs.filter(l => l.status === 'Clocked In').length;
+      document.getElementById('stat-clocked-in').innerText = clockedInCount;
+
+      let totalLateMins = 0;
+      let totalOtMins = 0;
+
+      todayLogs.forEach(log => {
+        const emp = employees.find(e => e.id === log.employeeId);
+        const calc = calculateMetrics(log, emp);
+        totalLateMins += calc.lateMinutes;
+        totalOtMins += calc.overtimeMinutes;
+      });
+
+      document.getElementById('stat-total-late').innerText = `${totalLateMins} min`;
+      document.getElementById('stat-total-ot').innerText = formatMinutesToHours(totalOtMins);
+    }
+
+    function renderAdminLogsTable() {
+      const tbody = document.getElementById('admin-logs-tbody');
+      tbody.innerHTML = '';
+
+      const dateFilter = document.getElementById('filter-date').value;
+      let filteredLogs = logs;
+
+      if (dateFilter) {
+        filteredLogs = logs.filter(l => l.date === dateFilter);
+      }
+
+      if (filteredLogs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="py-6 text-center text-slate-500 text-xs">No attendance logs found matching filter criteria.</td></tr>`;
+        return;
+      }
+
+      filteredLogs.forEach(log => {
+        const emp = employees.find(e => e.id === log.employeeId) || { name: 'Unknown Employee', expectedStart: '08:00', expectedEnd: '17:00' };
+        const calc = calculateMetrics(log, emp);
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-900/50 transition-colors";
+        tr.innerHTML = `
+          <td class="py-3 px-4">
+            <div class="font-bold text-white">${emp.name}</div>
+            <div class="text-[11px] text-slate-500">${log.employeeId}</div>
+          </td>
+          <td class="py-3 px-4 text-slate-300">${log.date}</td>
+          <td class="py-3 px-4 text-xs text-slate-400">${formatTime12Hour(emp.expectedStart)} - ${formatTime12Hour(emp.expectedEnd)}</td>
+          <td class="py-3 px-4 font-mono text-teal-400">${formatTime12Hour(log.timeIn)}</td>
+          <td class="py-3 px-4 font-mono text-slate-300">${log.timeOut ? formatTime12Hour(log.timeOut) : '<span class="text-emerald-400 text-xs font-sans">Active</span>'}</td>
+          <td class="py-3 px-4 font-medium">
+            ${calc.lateMinutes > 0 ? `<span class="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded text-xs">${calc.lateMinutes} mins</span>` : '<span class="text-slate-600">-</span>'}
+          </td>
+          <td class="py-3 px-4 font-medium">
+            ${calc.overtimeMinutes > 0 ? `<span class="text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded text-xs">${formatMinutesToHours(calc.overtimeMinutes)}</span>` : '<span class="text-slate-600">-</span>'}
+          </td>
+          <td class="py-3 px-4 font-mono text-white font-semibold">${calc.totalHours} hrs</td>
+          <td class="py-3 px-4">
+            ${log.status === 'Clocked In' 
+              ? '<span class="px-2 py-1 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">Clocked In</span>'
+              : '<span class="px-2 py-1 rounded-full text-[10px] bg-slate-800 text-slate-400">Completed</span>'
+            }
+          </td>
+          <td class="py-3 px-4 text-right space-x-2">
+            <button onclick="openManualLogModal('${log.id}')" class="text-slate-400 hover:text-teal-400 p-1" title="Edit/Override Record">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button onclick="deleteLog('${log.id}')" class="text-slate-400 hover:text-rose-400 p-1" title="Delete Record">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAdminEmployeesTable() {
+      const tbody = document.getElementById('admin-employees-tbody');
+      tbody.innerHTML = '';
+
+      const searchInput = document.getElementById('employee-search-input');
+      const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+      const filteredEmployees = employees.filter(emp =>
+        emp.name.toLowerCase().includes(searchTerm) ||
+        emp.role.toLowerCase().includes(searchTerm) ||
+        emp.id.toLowerCase().includes(searchTerm)
+      );
+
+      if (filteredEmployees.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500 text-xs">No employees found in roster.</td></tr>`;
+        return;
+      }
+
+      filteredEmployees.forEach(emp => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-900/50 transition-colors";
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-mono text-xs text-teal-400 font-bold">${emp.id}</td>
+          <td class="py-3 px-4 text-white font-bold">${emp.name}</td>
+          <td class="py-3 px-4 text-slate-400 text-xs">${emp.role}</td>
+          <td class="py-3 px-4 text-xs font-semibold text-slate-300">
+            ${formatTime12Hour(emp.expectedStart)} - ${formatTime12Hour(emp.expectedEnd)}
+          </td>
+          <td class="py-3 px-4 text-right space-x-2">
+            <button onclick="openEmployeeModal('${emp.id}')" class="text-slate-400 hover:text-teal-400 p-1" title="Edit Schedule / Info">
+              <i class="fa-solid fa-user-pen"></i>
+            </button>
+            <button onclick="deleteEmployee('${emp.id}')" class="text-slate-400 hover:text-rose-400 p-1" title="Remove Employee">
+              <i class="fa-solid fa-user-minus"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openEmployeeModal(empId = null) {
+      const modal = document.getElementById('modal-employee');
+      const title = document.getElementById('modal-emp-title');
+      
+      if (empId) {
+        const emp = employees.find(e => e.id === empId);
+        if (!emp) return;
+        title.innerText = 'Edit Employee & Schedule';
+        document.getElementById('emp-form-id').value = emp.id;
+        document.getElementById('emp-form-name').value = emp.name;
+        document.getElementById('emp-form-role').value = emp.role;
+        document.getElementById('emp-form-start').value = emp.expectedStart;
+        document.getElementById('emp-form-end').value = emp.expectedEnd;
+      } else {
+        title.innerText = 'Add New Employee';
+        document.getElementById('form-employee').reset();
+        document.getElementById('emp-form-id').value = '';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    async function saveEmployee(e) {
+      e.preventDefault();
+      const id = document.getElementById('emp-form-id').value;
+      const name = document.getElementById('emp-form-name').value;
+      const role = document.getElementById('emp-form-role').value;
+      const start = document.getElementById('emp-form-start').value;
+      const end = document.getElementById('emp-form-end').value;
+
+      if (id) {
+        // Edit Existing
+        const empData = { name, role, expectedStart: start, expectedEnd: end };
+        if (isFirebaseActive && db) {
+          try {
+            await db.collection('employees').doc(id).update(empData);
+          } catch (err) {
+            console.error("Firestore update employee error:", err);
+            showToast('Failed to update employee in Firestore', 'error');
+            return;
+          }
+        } else {
+          const idx = employees.findIndex(e => e.id === id);
+          if (idx !== -1) {
+            employees[idx] = { id, ...empData };
+          }
+          saveEmployees();
+          refreshUI();
+        }
+        showToast(`Updated schedule for ${name}`, 'success');
+      } else {
+        // Create New
+        const newId = 'EMP-' + Math.floor(1000 + Math.random() * 9000);
+        const empData = { name, role, expectedStart: start, expectedEnd: end };
+        if (isFirebaseActive && db) {
+          try {
+            await db.collection('employees').doc(newId).set(empData);
+          } catch (err) {
+            console.error("Firestore create employee error:", err);
+            showToast('Failed to save employee to Firestore', 'error');
+            return;
+          }
+        } else {
+          employees.push({ id: newId, ...empData });
+          saveEmployees();
+          refreshUI();
+        }
+        showToast(`Added employee ${name}`, 'success');
+      }
+
+      closeModal('modal-employee');
+    }
+
+    function openBulkImportModal() {
+      document.getElementById('bulk-import-text').value = '';
+      document.getElementById('modal-bulk-import').classList.remove('hidden');
+    }
+
+    async function processBulkImport() {
+      const rawText = document.getElementById('bulk-import-text').value.trim();
+      if (!rawText) {
+        showToast('Please enter or paste employee records.', 'error');
+        return;
+      }
+
+      const lines = rawText.split('\n');
+      let countAdded = 0;
+
+      for (const line of lines) {
+        const cleanLine = line.trim();
+        if (!cleanLine) continue;
+
+        const parts = cleanLine.split(',').map(p => p.trim());
+        const name = parts[0];
+        const role = parts[1] || 'Virtual Assistant';
+        const start = parts[2] || '08:00';
+        const end = parts[3] || '17:00';
+
+        if (name) {
+          const empId = 'EMP-' + Math.floor(1000 + Math.random() * 9000);
+          const empData = { name, role, expectedStart: start, expectedEnd: end };
+
+          if (isFirebaseActive && db) {
+            try {
+              await db.collection('employees').doc(empId).set(empData);
+              countAdded++;
+            } catch (err) {
+              console.error("Bulk import Firestore error:", err);
+            }
+          } else {
+            employees.push({ id: empId, ...empData });
+            countAdded++;
+          }
+        }
+      }
+
+      if (countAdded > 0) {
+        if (!isFirebaseActive) {
+          saveEmployees();
+          refreshUI();
+        }
+        closeModal('modal-bulk-import');
+        showToast(`Successfully imported ${countAdded} new employees!`, 'success');
+      } else {
+        showToast('No valid employee names found in text.', 'error');
+      }
+    }
+
+    async function deleteEmployee(empId) {
+      if (!confirm('Are you sure you want to remove this employee? Existing attendance logs will remain saved.')) return;
+      
+      if (isFirebaseActive && db) {
+        try {
+          await db.collection('employees').doc(empId).delete();
+        } catch (err) {
+          console.error("Firestore delete employee error:", err);
+          showToast('Failed to delete employee from Firestore.', 'error');
+          return;
+        }
+      } else {
+        employees = employees.filter(e => e.id !== empId);
+        saveEmployees();
+        refreshUI();
+      }
+      showToast('Employee removed from roster', 'info');
+    }
+
+    function openManualLogModal(logId = null) {
+      const modal = document.getElementById('modal-log-override');
+      const title = document.getElementById('modal-log-title');
+      const empSelect = document.getElementById('log-form-employee');
+
+      // Populate employees dropdown in log modal
+      empSelect.innerHTML = '';
+      employees.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp.id;
+        opt.textContent = `${emp.name} (${emp.id})`;
+        empSelect.appendChild(opt);
+      });
+
+      if (logId) {
+        const log = logs.find(l => l.id === logId);
+        if (!log) return;
+        title.innerText = 'Edit Attendance Record';
+        document.getElementById('log-form-id').value = log.id;
+        document.getElementById('log-form-employee').value = log.employeeId;
+        document.getElementById('log-form-date').value = log.date;
+        document.getElementById('log-form-timein').value = log.timeIn || '';
+        document.getElementById('log-form-timeout').value = log.timeOut || '';
+      } else {
+        title.innerText = 'Assign Verified Time Entry';
+        document.getElementById('form-log-override').reset();
+        document.getElementById('log-form-id').value = '';
+        document.getElementById('log-form-date').value = getTodayString();
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    async function saveManualLog(e) {
+      e.preventDefault();
+      const id = document.getElementById('log-form-id').value;
+      const empId = document.getElementById('log-form-employee').value;
+      const date = document.getElementById('log-form-date').value;
+      const timeIn = document.getElementById('log-form-timein').value;
+      const timeOut = document.getElementById('log-form-timeout').value;
+
+      const status = timeOut ? 'Completed' : 'Clocked In';
+
+      if (id) {
+        const logData = { employeeId: empId, date, timeIn, timeOut: timeOut || null, status };
+        if (isFirebaseActive && db) {
+          try {
+            await db.collection('logs').doc(id).update(logData);
+          } catch (err) {
+            console.error("Firestore update log error:", err);
+            showToast('Failed to update log in Firestore.', 'error');
+            return;
+          }
+        } else {
+          const idx = logs.findIndex(l => l.id === id);
+          if (idx !== -1) {
+            logs[idx] = { id, ...logData };
+          }
+          saveLogs();
+          refreshUI();
+        }
+        showToast('Updated log entry successfully', 'success');
+      } else {
+        const newLogId = 'LOG-' + Date.now();
+        const logData = { employeeId: empId, date, timeIn, timeOut: timeOut || null, status };
+        if (isFirebaseActive && db) {
+          try {
+            await db.collection('logs').doc(newLogId).set(logData);
+          } catch (err) {
+            console.error("Firestore save log error:", err);
+            showToast('Failed to create log in Firestore.', 'error');
+            return;
+          }
+        } else {
+          logs.unshift({ id: newLogId, ...logData });
+          saveLogs();
+          refreshUI();
+        }
+        showToast('Manual attendance record added', 'success');
+      }
+
+      closeModal('modal-log-override');
+    }
+
+    async function deleteLog(logId) {
+      if (!confirm('Are you sure you want to delete this attendance entry?')) return;
+      
+      if (isFirebaseActive && db) {
+        try {
+          await db.collection('logs').doc(logId).delete();
+        } catch (err) {
+          console.error("Firestore delete log error:", err);
+          showToast('Failed to delete log record from Firestore.', 'error');
+          return;
+        }
+      } else {
+        logs = logs.filter(l => l.id !== logId);
+        saveLogs();
+        refreshUI();
+      }
+      showToast('Attendance record deleted', 'info');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function exportToCSV() {
+      if (logs.length === 0) {
+        showToast('No log records available to export.', 'error');
+        return;
+      }
+
+      const headers = [
+        "Employee ID",
+        "Employee Name",
+        "Role",
+        "Date",
+        "Expected Shift Start",
+        "Expected Shift End",
+        "Actual Time In",
+        "Actual Time Out",
+        "Late Minutes",
+        "Overtime Minutes",
+        "Total Hours Worked",
+        "Status"
+      ];
+
+      const csvRows = [headers.join(',')];
+
+      logs.forEach(log => {
+        const emp = employees.find(e => e.id === log.employeeId) || { name: 'Unknown', role: 'N/A', expectedStart: '08:00', expectedEnd: '17:00' };
+        const calc = calculateMetrics(log, emp);
+
+        const row = [
+          `"${log.employeeId}"`,
+          `"${emp.name}"`,
+          `"${emp.role}"`,
+          `"${log.date}"`,
+          `"${emp.expectedStart}"`,
+          `"${emp.expectedEnd}"`,
+          `"${log.timeIn || ''}"`,
+          `"${log.timeOut || ''}"`,
+          calc.lateMinutes,
+          calc.overtimeMinutes,
+          calc.totalHours,
+          `"${log.status}"`
+        ];
+
+        csvRows.push(row.join(','));
+      });
+
+      const csvString = csvRows.join('\n');
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Catalyst_Digitals_Payroll_Attendance_${getTodayString()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast('CSV Salary Record exported successfully!', 'success');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+
+      let bgColor = 'bg-slate-900 border-slate-700 text-slate-200';
+      let icon = 'fa-circle-info text-cyan-400';
+
+      if (type === 'success') {
+        bgColor = 'bg-slate-900 border-teal-500/50 text-white';
+        icon = 'fa-circle-check text-teal-400';
+      } else if (type === 'error') {
+        bgColor = 'bg-slate-900 border-rose-500/50 text-white';
+        icon = 'fa-triangle-exclamation text-rose-400';
+      }
+
+      toast.className = `${bgColor} border px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm font-medium transition-all duration-300 pointer-events-auto transform translate-y-2 opacity-0`;
+      toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i><span>${message}</span>`;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
